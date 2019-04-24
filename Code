@@ -1,0 +1,198 @@
+#include <Wire.h>
+#include "Timer.h"
+#include <SPI.h>
+#include <Adafruit_LSM9DS1.h>
+#include <Adafruit_Sensor.h>  // not used in this demo but required!
+int Vmotor = 4; 
+const unsigned long PERIOD1 = 100;
+Timer t;
+
+//unsigned long previousMillis = 0;
+//const long interval =1000;
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+#include <avr/power.h>
+#endif
+#define PIN            6
+#define NUMPIXELS      8
+
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+// i2c
+Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1();
+
+#define LSM9DS1_SCK A5
+#define LSM9DS1_MISO 12
+#define LSM9DS1_MOSI A4
+#define LSM9DS1_XGCS 6
+#define LSM9DS1_MCS 5
+// You can also use software SPI
+//Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1(LSM9DS1_SCK, LSM9DS1_MISO, LSM9DS1_MOSI, LSM9DS1_XGCS, LSM9DS1_MCS);
+// Or hardware SPI! In this case, only CS pins are passed in
+//Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1(LSM9DS1_XGCS, LSM9DS1_MCS);
+
+int pre_x = 0;
+boolean left = false;
+boolean pre_left = false;
+boolean Yellow = false;
+int count_left = 0;
+int count_right = 0;
+int 
+void setupSensor()
+{
+  // 1.) Set the accelerometer range
+  lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_2G);
+  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_4G);
+  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_8G);
+  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_16G);
+
+  // 2.) Set the magnetometer sensitivity
+  lsm.setupMag(lsm.LSM9DS1_MAGGAIN_4GAUSS);
+  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_8GAUSS);
+  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_12GAUSS);
+  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_16GAUSS);
+
+  // 3.) Setup the gyroscope
+  lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_245DPS);
+  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_500DPS);
+  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_2000DPS);
+}
+
+
+void setup(){
+  Serial.begin(115200);
+  pinMode(Vmotor, OUTPUT);
+  //t.oscillate(Vmotor,PERIOD1,HIGH);
+  while (!Serial) {
+    delay(1); // will pause Zero, Leonardo, etc until serial console opens
+  }
+
+  Serial.println("LSM9DS1 data read demo");
+
+  // Try to initialise and warn if we couldn't detect the chip
+  if (!lsm.begin())
+  {
+    Serial.println("Oops ... unable to initialize the LSM9DS1. Check your wiring!");
+    while (1);
+  }
+  Serial.println("Found LSM9DS1 9DOF");
+
+  // helper to just set the default scaling we want, see above!
+  setupSensor();
+   
+  pixels.begin();
+ 
+}
+
+void loop(){
+ // unsigned long currentMillis = millis();
+  lsm.read();  /* ask it to read in the data */
+
+  /* Get a new sensor event */
+  sensors_event_t a, m, g, temp;
+  lsm.getEvent(&a, &m, &g, &temp);
+  pre_left = left;
+  if (pre_x -  m.magnetic.x > 0) {
+    left = true;
+
+  } else {
+    left = false;
+
+  }
+  yellow = yellow
+   if (pre_x >  m.magnetic.x || pre_x < m.magnetic.x) {
+    //left = true;
+
+  } else {
+    //left = false;
+
+  }
+
+
+  //Serial.print(pre_x,m.magnetic.x);
+  pre_x = m.magnetic.x;
+
+
+  //  Serial.print("Accel X: "); Serial.print(a.acceleration.x); Serial.print(" m/s^2");
+  //  Serial.print("\tY: "); Serial.print(a.acceleration.y);     Serial.print(" m/s^2 ");
+  //  Serial.print("\tZ: "); Serial.print(a.acceleration.z);     Serial.println(" m/s^2 ");
+  //
+  //  Serial.print("Mag X: "); Serial.print(m.magnetic.x);   Serial.print(" gauss");
+  //  Serial.print("\tY: "); Serial.print(m.magnetic.y);     Serial.print(" gauss");
+  //  Serial.print("\tZ: "); Serial.print(m.magnetic.z);     Serial.println(" gauss");
+  //
+  //  Serial.print("Gyro X: "); Serial.print(g.gyro.x);   Serial.print(" dps");
+  //  Serial.print("\tY: "); Serial.print(g.gyro.y);      Serial.print(" dps");
+  //  Serial.print("\tZ: "); Serial.print(g.gyro.z);      Serial.println(" dps");
+
+  if (left && !pre_left) {
+    //light for left
+    count_left += 1;
+    Serial.print("left");
+    Serial.print("\t");
+    Serial.print(count_left);
+  } else if (!left && pre_left) {
+    //light for right
+    count_right += 1;
+    Serial.print("right");
+    Serial.print("\t");
+    Serial.print(count_right);
+  }
+
+if (count_left == 9 || count_right == 9) {
+    //t.oscillate(Vmotor,PERIOD1,HIGH);
+    digitalWrite(Vmotor,HIGH);
+   
+    count_left = 0;
+    count_right = 0;
+//   
+//    for(int j=0; j<256; j++) {
+//    for (int i=0; i < NUMPIXELS; i=i+1) { 
+//      pixels.setPixelColor(i, Wheel((i+j) & 255));
+//    }
+//   pixels.show();
+uint16_t i, j;
+  for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
+    for(i=0; i<NUMPIXELS; i++) {
+      pixels.setPixelColor(i, Wheel(((i * 256 / NUMPIXELS) + j) & 255));
+    }
+    pixels.show();
+   delay(1);
+      //pixels.setPixelColor(i, 0);  //turn every  pixel off
+      // pixels.show();
+   }
+   //t.update();
+        delay (500);  
+        digitalWrite(Vmotor,LOW);
+       // t.oscillate(Vmotor,);
+     for (int i=0; i < NUMPIXELS; i=i+1) {
+        pixels.setPixelColor(i, 0);  //turn every  pixel off
+       pixels.show();
+        }   
+  } 
+   
+   //t.update();
+
+  //Serial.println();
+
+  if(count_left < 9 && count_right <9){
+    pixels.setPixelColor(count_left-1, pixels.Color(204, 204, 0)); // Moderately bright yellow color.
+    pixels.show(); // This sends the updated pixel color to the hardware.
+    pixels.setPixelColor(count_right-1, pixels.Color(0, 150, 0)); // Moderately bright green color.
+    pixels.show(); // This sends the updated pixel color to the hardware.
+    pixels.setBrightness(64);
+      pixels.show();
+   // delay(delayval); // Delay for a period of time (in milliseconds).
+  }
+}
+  uint32_t Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if(WheelPos < 85) {
+    return pixels.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if(WheelPos < 170) {
+    WheelPos -= 85;
+    return pixels.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return pixels.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
