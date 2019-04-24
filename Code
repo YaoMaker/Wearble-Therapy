@@ -1,3 +1,6 @@
+/* For the Wearable Therapy project */
+/* Ulnar Derivation  */
+
 #include <Wire.h>
 #include "Timer.h"
 #include <SPI.h>
